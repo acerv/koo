@@ -36,36 +36,51 @@ struct Args {
     filter: FilterType,
 }
 
-fn print_path(path: &Path, ftype: &FilterType) {
-    let print = match ftype {
-        FilterType::Any => true,
-        FilterType::Text => path.is_file(),
-        FilterType::Folder => path.is_dir(),
-        FilterType::Symlink => path.is_symlink(),
-        FilterType::Device => match fs::metadata(path) {
-            Ok(md) => md.file_type().is_char_device() || md.file_type().is_block_device(),
-            Err(e) => {
-                eprintln!("Error reading '{:#?}': {e}", path);
-                false
-            }
-        },
-    };
+fn print_path(parent: &str, fname: &str, subs: &str) {
+    let start = fname
+        .find(subs)
+        .expect("Can't find subtring inside file name");
+    let end = start + subs.len();
 
-    if print {
-        if let Some(s) = path.to_str() {
-            println!("{s}");
-        }
-    }
+    println!(
+        "{}/{}\x1b[91m{}\x1b[0m{}",
+        parent,
+        &fname[..start],
+        &fname[start..end],
+        &fname[end..]
+    );
 }
 
 fn find(path: &Path, regex: &Regex, ftype: &FilterType) {
-    if let Some(os_fname) = path.file_name() {
-        if let Some(fname) = os_fname.to_str() {
-            if regex.is_match(fname) {
-                print_path(path, ftype);
-            }
-        } else {
-            eprintln!("Can't read UTF-8 string file name for '{:#?}'", os_fname);
+    let Some(os_fname) = path.file_name() else {
+        eprintln!("Can't read file name for path '{:#?}'", path);
+        return;
+    };
+    let Some(fname) = os_fname.to_str() else {
+        eprintln!("Can't read UTF-8 string file name for '{:#?}'", os_fname);
+        return;
+    };
+
+    if let Some(mat) = regex.find(fname) {
+        if match ftype {
+            FilterType::Any => true,
+            FilterType::Text => path.is_file(),
+            FilterType::Folder => path.is_dir(),
+            FilterType::Symlink => path.is_symlink(),
+            FilterType::Device => match fs::metadata(path) {
+                Ok(md) => md.file_type().is_char_device() || md.file_type().is_block_device(),
+                Err(e) => {
+                    eprintln!("Error reading '{:#?}': {e}", path);
+                    false
+                }
+            },
+        } {
+            let parent = path.parent().expect("Path must have parent");
+            let sparent = parent
+                .to_str()
+                .expect("Can't convert parent to UTF-8 string");
+
+            print_path(sparent, fname, &mat.as_str());
         }
     }
 
