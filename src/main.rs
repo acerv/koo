@@ -6,7 +6,7 @@ use std::path::Path;
 
 #[derive(ValueEnum, Clone, Debug)]
 enum FilterType {
-    // Show any file type will Authorization required, but no authorization protocol specified
+    // Show any file type
     Any,
     // Show text files
     Text,
@@ -74,6 +74,7 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType) {
     }
 
     let iter = fs::read_dir(path).expect("Path must be a directory");
+
     for entry in iter {
         if let Ok(item) = entry {
             find(&item.path(), regex, &ftype);
