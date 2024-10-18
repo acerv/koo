@@ -67,11 +67,11 @@ fn print_path(parent: &str, fname: &str, subs: &str, colors: bool) {
 
 fn find(path: &Path, regex: &Regex, ftype: &FilterType, colors: bool) {
     let Some(os_fname) = path.file_name() else {
-        eprintln!("Can't read file name for path '{:#?}'", path);
+        eprintln!("Can't read file name for path '{path:#?}'");
         return;
     };
     let Some(fname) = os_fname.to_str() else {
-        eprintln!("Can't read UTF-8 string file name for '{:#?}'", os_fname);
+        eprintln!("Can't read UTF-8 string file name for '{os_fname:#?}'");
         return;
     };
 
@@ -84,7 +84,7 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType, colors: bool) {
             FilterType::Device => match fs::metadata(path) {
                 Ok(md) => md.file_type().is_char_device() || md.file_type().is_block_device(),
                 Err(e) => {
-                    eprintln!("Error reading '{:#?}': {e}", path);
+                    eprintln!("Error reading '{path:#?}': {e}");
                     false
                 }
             },
@@ -94,7 +94,7 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType, colors: bool) {
                 .to_str()
                 .expect("Can't convert parent to UTF-8 string");
 
-            print_path(sparent, fname, &mat.as_str(), colors);
+            print_path(sparent, fname, mat.as_str(), colors);
         }
     }
 
@@ -106,9 +106,9 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType, colors: bool) {
 
     for entry in iter {
         if let Ok(item) = entry {
-            find(&item.path(), regex, &ftype, colors);
+            find(&item.path(), regex, ftype, colors);
         } else {
-            eprintln!("Can't iterate over '{:#?}'", entry)
+            eprintln!("Can't iterate over '{entry:#?}'");
         }
     }
 }
@@ -128,7 +128,7 @@ fn main() {
     match fspath.try_exists() {
         Ok(exists) => {
             if exists {
-                find(&fspath, &regex.unwrap(), &args.filter, !args.no_colors);
+                find(fspath, &regex.unwrap(), &args.filter, !args.no_colors);
             } else {
                 println!("{dir} directory doesn't exist");
             }
