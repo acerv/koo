@@ -34,24 +34,38 @@ struct Args {
     #[arg(short, long)]
     #[arg(required = false, default_value = "any")]
     filter: FilterType,
+
+    /// Color output if defined
+    #[arg(short, long)]
+    #[arg(required = false, default_value_t = false)]
+    no_colors: bool,
 }
 
-fn print_path(parent: &str, fname: &str, subs: &str) {
+fn print_path(parent: &str, fname: &str, subs: &str, colors: bool) {
     let start = fname
         .find(subs)
         .expect("Can't find subtring inside file name");
     let end = start + subs.len();
+    let mut col_a = "";
+    let mut col_b = "";
+
+    if colors {
+        col_a = "\x1b[91m";
+        col_b = "\x1b[0m";
+    }
 
     println!(
-        "{}/{}\x1b[91m{}\x1b[0m{}",
+        "{}/{}{}{}{}{}",
         parent,
         &fname[..start],
+        col_a,
         &fname[start..end],
+        col_b,
         &fname[end..]
     );
 }
 
-fn find(path: &Path, regex: &Regex, ftype: &FilterType) {
+fn find(path: &Path, regex: &Regex, ftype: &FilterType, colors: bool) {
     let Some(os_fname) = path.file_name() else {
         eprintln!("Can't read file name for path '{:#?}'", path);
         return;
@@ -80,7 +94,7 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType) {
                 .to_str()
                 .expect("Can't convert parent to UTF-8 string");
 
-            print_path(sparent, fname, &mat.as_str());
+            print_path(sparent, fname, &mat.as_str(), colors);
         }
     }
 
@@ -92,7 +106,7 @@ fn find(path: &Path, regex: &Regex, ftype: &FilterType) {
 
     for entry in iter {
         if let Ok(item) = entry {
-            find(&item.path(), regex, &ftype);
+            find(&item.path(), regex, &ftype, colors);
         } else {
             eprintln!("Can't iterate over '{:#?}'", entry)
         }
@@ -114,7 +128,7 @@ fn main() {
     match fspath.try_exists() {
         Ok(exists) => {
             if exists {
-                find(&fspath, &regex.unwrap(), &args.filter);
+                find(&fspath, &regex.unwrap(), &args.filter, !args.no_colors);
             } else {
                 println!("{dir} directory doesn't exist");
             }
